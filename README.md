@@ -4,20 +4,20 @@ MyParcel is a Go package that provides functionality for sending and tracking le
 ## Installation
 To install the MyParcel Go package, use the following command:
 
-```
+```bash
 go get github.com/daltcore/myparcel
 ```
 
 ## Usage
 To use the MyParcel Go package, import it into your Go project:
 
-```
+```go
 import "github.com/daltcore/myparcel"
 ```
 
 Then, create a new MyParcel client:
 
-```
+```go
 client := myparcel.NewClient("<your API key>")
 ````
 
@@ -49,7 +49,7 @@ fmt.Printf("%+v\n", s)
 ```
 You can also use the client to track a package:
 
-```
+```go
 s, err := client.GetShipment(12345)
 	if err != nil {
 		panic(err)
