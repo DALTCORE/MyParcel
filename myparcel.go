@@ -116,7 +116,7 @@ func (c *Client) CreateShipment(shipment Shipment) (string, error) {
 		return "", err
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/vnd.shipment+json;version=1.1;charset=utf-8")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.ApiKey)
 	req.Header.Set("User-Agent", c.UserAgent)
