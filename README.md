@@ -66,9 +66,9 @@ The MyParcel Go package includes the following features:
 If you would like to contribute to the MyParcel Go package, please follow these steps:
 
 - Fork this repository
-- Create a new branch for your feature: git checkout -b my-new-feature
-- Make your changes and commit them: git commit -am 'Add some feature'
-- Push to the branch: git push origin my-new-feature
+- Create a new branch for your feature: `git checkout -b my-new-feature`
+- Make your changes and commit them: `git commit -am 'Add some feature'`
+- Push to the branch: `git push origin my-new-feature`
 - Create a new pull request
 
 Please ensure that your code follows the project's coding style and that all tests pass before submitting a pull request.
