@@ -61,8 +61,21 @@ type Client struct {
 }
 
 // Shipment struct
-type ShipmentStruct struct {
+type ShipmentCreateStruct struct {
 	Recipient                RecipientStruct `json:"recipient"`                              // Required: Yes. The recipient address.
+	ReferenceIdentifier      string          `json:"reference_identifier"`                   // Required: No. Arbitrary reference indentifier to identify this shipment.
+	Options                  OptionsStruct   `json:"options"`                                // Required: Yes. The shipment options.
+	Carrier                  int             `json:"carrier"`                                // Required: Yes. The carrier that will deliver the package.
+	Barcode                  string          `json:"barcode,omitempty"`                      // Required: n/a. Shipment barcode.
+	SecondaryShipments       interface{}     `json:"secondary_shipments,omitempty"`          // Required: no. You can specify secondary shipments for the shipment with this object. This property is used to create a multi collo shipment: multiple packages to be delivered to the same address at the same time. Secondary shipment can be passed as empty json objects as all required data will be copied from the main shipment. When data is passed with the secondary shipment this data will be used in favor of the main shipment data.
+	MultiColloMainShipmentID interface{}     `json:"multi_collo_main_shipment_id,omitempty"` // Required: n/a. In case of a multi collo shipment this field contains the id of the main shipment.
+	Created                  string          `json:"created,omitempty"`                      // Required: n/a. Date of creaton.
+	Modified                 string          `json:"modified,omitempty"`                     // Required: n/a. Date of modification.
+}
+
+type ShipmentRequestStruct struct {
+	Recipient                RecipientStruct `json:"recipient"`                              // Required: Yes. The recipient address.
+	Sender                   SenderStruct    `json:"sender,omitempty"`                       // Required: n/a. The sender of the package. This field is never set.
 	ReferenceIdentifier      string          `json:"reference_identifier"`                   // Required: No. Arbitrary reference indentifier to identify this shipment.
 	Options                  OptionsStruct   `json:"options"`                                // Required: Yes. The shipment options.
 	Carrier                  int             `json:"carrier"`                                // Required: Yes. The carrier that will deliver the package.
@@ -108,15 +121,15 @@ type InsuranceStruct struct {
 
 // Sender struct
 type SenderStruct struct {
-	Cc         string `json:"cc"`          // Required: yes. The address country code.
-	Region     string `json:"region"`      // Required: no. The region, department, state or province of the address.
-	City       string `json:"city"`        // Required: yes. The address city.
-	Street     string `json:"street"`      // Required: yes. The address street name. When shipping to an international destination, you may include street number in this field.
-	Number     string `json:"number"`      // Required: yes for domestic shipments in NL and BE. Street number.
-	PostalCode string `json:"postal_code"` // Required: yes for NL and EU destinations except for IE. The address postal code.
-	Person     string `json:"person"`      // Required: yes. The person at this address. Up to 40 characters long.
-	Phone      string `json:"phone"`       // Required: no. The address phone.
-	Email      string `json:"email"`       // Required: no The address email.
+	Cc         string `json:"cc,omitempty"`          // Required: yes. The address country code.
+	Region     string `json:"region,omitempty"`      // Required: no. The region, department, state or province of the address.
+	City       string `json:"city,omitempty"`        // Required: yes. The address city.
+	Street     string `json:"street,omitempty"`      // Required: yes. The address street name. When shipping to an international destination, you may include street number in this field.
+	Number     string `json:"number,omitempty"`      // Required: yes for domestic shipments in NL and BE. Street number.
+	PostalCode string `json:"postal_code,omitempty"` // Required: yes for NL and EU destinations except for IE. The address postal code.
+	Person     string `json:"person,omitempty"`      // Required: yes. The person at this address. Up to 40 characters long.
+	Phone      string `json:"phone,omitempty"`       // Required: no. The address phone.
+	Email      string `json:"email,omitempty"`       // Required: no The address email.
 }
 
 // ShipmentRequest to io.Reader
@@ -131,17 +144,26 @@ func (s ShipmentRequest) toReader() (io.Reader, error) {
 	return bytes.NewReader(b), nil
 }
 
-type ShipmentResponse struct {
+type ShipmentCreatedResponseStruct struct {
 	Data struct {
-		Shipments []ShipmentStruct `json:"shipments"`
-		Results   int              `json:"results"`
+		Ids []struct {
+			ID                  int    `json:"id"`
+			ReferenceIdentifier string `json:"reference_identifier"`
+		} `json:"ids"`
+	} `json:"data"`
+}
+
+type ShipmentResponseStruct struct {
+	Data struct {
+		Shipments []ShipmentRequestStruct `json:"shipments"`
+		Results   int                     `json:"results"`
 	} `json:"data"`
 }
 
 // ShipmentRequest struct with data and with multiple shipments
 type ShipmentRequest struct {
 	Data struct {
-		Shipments []ShipmentStruct `json:"shipments"`
+		Shipments []ShipmentCreateStruct `json:"shipments"`
 	} `json:"data"`
 }
 
@@ -162,27 +184,27 @@ func NewClient(apiKey string) *Client {
 }
 
 // CreateShipment creates a new shipment.
-func (c *Client) CreateShipment(shipment ShipmentStruct) (string, error) {
+func (c *Client) CreateShipment(shipment ShipmentCreateStruct) (int, error) {
 
 	// create the request
 	request := ShipmentRequest{
 		Data: struct {
-			Shipments []ShipmentStruct `json:"shipments"`
+			Shipments []ShipmentCreateStruct `json:"shipments"`
 		}{
-			Shipments: []ShipmentStruct{shipment},
+			Shipments: []ShipmentCreateStruct{shipment},
 		},
 	}
 
 	// convert the request to io.Reader
 	reader, err := request.toReader()
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
 	// create the http request
 	req, err := http.NewRequest("POST", c.apiBaseURL+"/shipments", reader)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
 	// set the headers
@@ -194,7 +216,7 @@ func (c *Client) CreateShipment(shipment ShipmentStruct) (string, error) {
 	// send the request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 	defer resp.Body.Close()
 
@@ -203,27 +225,29 @@ func (c *Client) CreateShipment(shipment ShipmentStruct) (string, error) {
 		// echo the response body
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return "", err
+			return 0, err
 		}
-		return "", fmt.Errorf("MyParcel API returned status code %d: %s", resp.StatusCode, body)
-	} else {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return "", err
-		}
-		return "", fmt.Errorf("MyParcel API returned status code %d: %s", resp.StatusCode, body)
+		return 0, fmt.Errorf("MyParcel API returned status code %d: %s", resp.StatusCode, body)
 	}
 
-	// return "", nil
+	// decode the response
+	var response ShipmentCreatedResponseStruct
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	if err != nil {
+		return 0, err
+	}
+
+	// return the shipment id
+	return response.Data.Ids[0].ID, nil
 }
 
 // GetShipment returns a shipment by ID.
-func (c *Client) GetShipment(id int) (ShipmentResponse, error) {
+func (c *Client) GetShipment(id int) (ShipmentResponseStruct, error) {
 
 	// create the http request
 	req, err := http.NewRequest("GET", c.apiBaseURL+"/shipments/"+strconv.Itoa(id), nil)
 	if err != nil {
-		return ShipmentResponse{}, err
+		return ShipmentResponseStruct{}, err
 	}
 
 	// set the headers
@@ -235,7 +259,7 @@ func (c *Client) GetShipment(id int) (ShipmentResponse, error) {
 	// send the request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return ShipmentResponse{}, err
+		return ShipmentResponseStruct{}, err
 	}
 	defer resp.Body.Close()
 
@@ -244,18 +268,18 @@ func (c *Client) GetShipment(id int) (ShipmentResponse, error) {
 		// echo the response body
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return ShipmentResponse{}, err
+			return ShipmentResponseStruct{}, err
 		}
-		return ShipmentResponse{}, fmt.Errorf("MyParcel API returned status code %d: %s", resp.StatusCode, body)
+		return ShipmentResponseStruct{}, fmt.Errorf("MyParcel API returned status code %d: %s", resp.StatusCode, body)
 	}
 
 	// decode the response
-	var shipmentResponse ShipmentResponse
-	err = json.NewDecoder(resp.Body).Decode(&shipmentResponse)
+	var shipmentResponseStruct ShipmentResponseStruct
+	err = json.NewDecoder(resp.Body).Decode(&shipmentResponseStruct)
 	if err != nil {
-		return ShipmentResponse{}, err
+		return ShipmentResponseStruct{}, err
 	}
 
 	// return the response
-	return shipmentResponse, nil
+	return shipmentResponseStruct, nil
 }
