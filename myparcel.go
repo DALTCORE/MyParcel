@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"sync"
 	"time"
 )
 
@@ -37,7 +36,6 @@ type Client struct {
 	ApiKey     string
 	httpClient *http.Client
 	UserAgent  string
-	sync.Mutex
 }
 
 // Shipment struct
