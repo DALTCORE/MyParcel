@@ -1,6 +1,9 @@
 package myparcel
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -33,6 +36,7 @@ type Client struct {
 	apiBaseURL string
 	ApiKey     string
 	httpClient *http.Client
+	UserAgent  string
 	sync.Mutex
 }
 
@@ -68,12 +72,33 @@ type Shipment struct {
 	Carrier int `json:"carrier"` // Required: Yes. The carrier that will deliver the package.
 }
 
+// ShipmentStruct to io.Reader
+func (s Shipment) toReader() (io.Reader, error) {
+	b, err := json.Marshal(s)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes.NewReader(b), nil
+}
+
+// ShipmentResponse struct
+type ShipmentResponse struct {
+	Data struct {
+		Ids []struct {
+			ID                  int    `json:"id"`
+			ReferenceIdentifier string `json:"reference_identifier"`
+		} `json:"ids"`
+	} `json:"data"`
+}
+
 // NewClient returns a new MyParcel client.
 // The API key is required to use the MyParcel API.
 func NewClient(apiKey string) *Client {
 	return &Client{
 		apiBaseURL: "https://api.myparcel.nl",
 		httpClient: &http.Client{},
+		UserAgent:  "MyParcelGoClient/0.0.1",
 		ApiKey:     apiKey,
 	}
 }
@@ -81,4 +106,26 @@ func NewClient(apiKey string) *Client {
 // CreateShipment creates a new shipment.
 func (c *Client) CreateShipment(shipment Shipment) (string, error) {
 
+	reader, err := shipment.toReader()
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest("POST", c.apiBaseURL+"/shipments", reader)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.ApiKey)
+	req.Header.Set("User-Agent", c.UserAgent)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	return "", nil
 }
