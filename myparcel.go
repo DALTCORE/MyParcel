@@ -40,23 +40,23 @@ type Client struct {
 type Shipment struct {
 	ReferenceIdentifier string `json:"reference_identifier"` // Required: No. Arbitrary reference indentifier to identify this shipment.
 	Recipient           struct {
-		Cc         string `json:"cc"`          // Required: yes. The address country code.
-		Region     string `json:"region"`      // Required: no. The region, department, state or province of the address.
-		City       string `json:"city"`        // Required: yes. The address city.
-		Street     string `json:"street"`      // Required: yes. The address street name. When shipping to an international destination, you may include street number in this field.
-		Number     string `json:"number"`      // Required: yes for domestic shipments in NL and BE. Street number.
-		PostalCode string `json:"postal_code"` // Required: yes for NL and EU destinations except for IE. The address postal code.
-		Person     string `json:"person"`      // Required: yes. The person at this address. Up to 40 characters long.
-		Phone      string `json:"phone"`       // Required: no. The address phone.
-		Email      string `json:"email"`       // Required: no The address email.
-	} `json:"recipient"` // Required: Yes for application/vnd.shipment_recipients+json Use this field when you want to create multiple shipments for multiple addresses.
+		Cc         string `json:"cc"`               // Required: yes. The address country code.
+		Region     string `json:"region,omitempty"` // Required: no. The region, department, state or province of the address.
+		City       string `json:"city"`             // Required: yes. The address city.
+		Street     string `json:"street"`           // Required: yes. The address street name. When shipping to an international destination, you may include street number in this field.
+		Number     string `json:"number"`           // Required: yes for domestic shipments in NL and BE. Street number.
+		PostalCode string `json:"postal_code"`      // Required: yes for NL and EU destinations except for IE. The address postal code.
+		Person     string `json:"person"`           // Required: yes. The person at this address. Up to 40 characters long.
+		Phone      string `json:"phone,omitempty"`  // Required: no. The address phone.
+		Email      string `json:"email,omitempty"`  // Required: no The address email.
+	} `json:"recipient"` // Required: Yes. The recipient address.
 	Options struct {
-		PackageType   int       `json:"package_type"`            // Required: yes. The package type. For international shipment only package type 1 (package) is allowed.
-		OnlyRecipient int       `json:"only_recipient"`          // Required: No. Deliver the package to the recipient only.
-		DeliveryType  int       `json:"delivery_type" omitempty` // Required: Yes if delivery_date has been specified. The delivery type for the package.
-		DeliveryDate  time.Time `json:"delivery_date" omitempty` // Required: Yes if delivery type has been specified. The delivery date time for this shipment.
-		Signature     int       `json:"signature"`               // Required: No. Package must be signed for.
-		Return        int       `json:"return"`                  // Required: No. Return the package if the recipient is not home.
+		PackageType   int       `json:"package_type"`             // Required: yes. The package type. For international shipment only package type 1 (package) is allowed.
+		OnlyRecipient int       `json:"only_recipient,omitempty"` // Required: No. Deliver the package to the recipient only.
+		DeliveryType  int       `json:"delivery_type,omitempty"`  // Required: Yes if delivery_date has been specified. The delivery type for the package.
+		DeliveryDate  time.Time `json:"delivery_date,omitempty"`  // Required: Yes if delivery type has been specified. The delivery date time for this shipment.
+		Signature     int       `json:"signature,omitempty"`      // Required: No. Package must be signed for.
+		Return        int       `json:"return,omitempty"`         // Required: No. Return the package if the recipient is not home.
 		Insurance     struct {
 			Amount   int    `json:"amount"`   // Required: yes. The amount is without decimal separators (in cents).
 			Currency string `json:"currency"` // Required: yes. The insurance currency code. Must be one of the following: EUR.
