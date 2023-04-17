@@ -40,22 +40,22 @@ shipment := myparcel.ShipmentStruct{
     Carrier: myparcel.CarrierPostnl,
 }
 
-s, err := client.CreateShipment(shipment)
+id, err := client.CreateShipment(shipment)
 if err != nil {
     panic(err)
 }
 
-fmt.Printf("%+v\n", s)
+fmt.Println(id)
 ```
 You can also use the client to track a package:
 
 ```go
-s, err := client.GetShipment(12345)
+shipmentResponse, err := client.GetShipment(12345)
 	if err != nil {
 		panic(err)
 	}
 
-fmt.Printf("%+v\n", s)
+fmt.Printf("%+v\n", shipmentResponse)
 ```
 
 For more information about the available operations and data structures, see the GoDoc documentation.
@@ -64,9 +64,8 @@ For more information about the available operations and data structures, see the
 The MyParcel Go package includes the following features:
 
 - Create shipments
+- Get shipments
 - Track packages
-- Retrieve shipment labels
-- Retrieve shipment status updates
 
 ## Contributing
 If you would like to contribute to the MyParcel Go package, please follow these steps:
