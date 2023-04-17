@@ -1,4 +1,4 @@
-# MyParcel Go Package [WIP, not working yet!]
+# MyParcel Go Package [WIP, partially working]
 MyParcel is a Go package that provides functionality for sending and tracking letters and parcels. It interacts with the MyParcel API to perform operations such as creating shipments and tracking packages.
 
 ## Installation
