@@ -12,30 +12,31 @@ import (
 
 const (
 	// Carriers
-	CARRIER_POSTNL      = 1 // (PostNL)
-	CARRIER_BPOST       = 2 // (bpost. Only available on Sendmyparcel.be)
-	CARRIER_CHEAP_CARGO = 3 // (CheapCargo/pallets)
-	CARRIER_DPD         = 4 // (DPD. Only available on Sendmyparcel.be)
-	CARRIER_INSTABOX    = 5 // (Instabox. Only available on MyParcel.nl)
-	CARRIER_UPS         = 8 // (UPS. Only available on MyParcel.nl)
+	CarrierPostnl     = 1 // (PostNL)
+	CarrierBpost      = 2 // (bpost. Only available on Sendmyparcel.be)
+	CarrierCheapCargo = 3 // (CheapCargo/pallets)
+	CarrierDpd        = 4 // (DPD. Only available on Sendmyparcel.be)
+	CarrierInstabox   = 5 // (Instabox. Only available on MyParcel.nl)
+	CarrierUps        = 8 // (UPS. Only available on MyParcel.nl)
 
 	// Package types
-	PARCEL_PACKAGE = 1 // This is the standard package type used for NL, EU and Global shipments. It supports a variety of additional options such as insurance, xl format etc. We will look at these options in more detail later. This package is most commonly used when creating shipments.
-	PARCEL_MAILBOX = 2 // This package type is only available on MyParcel.nl and Flespakket for NL shipment that fit into a mailbox. It does not support additional options. Note: If you still make the request with additional options, bear in mind that you need to pay more than is necessary!
-	PARCEL_LETTER  = 3 // This package type is available on MyParcel.nl for NL, EU and Global shipments. The label for this shipment is unpaid meaning that you will need to pay the postal office/courier to sent this letter/package. Therefore, it does not support additional options.
-	PARCEL_STAMP   = 4 // This package type is only available on MyParcel.nl for NL shipments and does not support any additional options. Its price is calculated using the package weight. Note: This shipment will appear on your invoice on shipment_status 2 (pending - registered) as opposed to all other package types, which won't appear on your invoice until shipment status 3 (enroute - handed to carrier).
+	ParcelPackage = 1 // This is the standard package type used for NL, EU and Global shipments. It supports a variety of additional options such as insurance, xl format etc. We will look at these options in more detail later. This package is most commonly used when creating shipments.
+	ParcelMailbox = 2 // This package type is only available on MyParcel.nl and Flespakket for NL shipment that fit into a mailbox. It does not support additional options. Note: If you still make the request with additional options, bear in mind that you need to pay more than is necessary!
+	ParcelLetter  = 3 // This package type is available on MyParcel.nl for NL, EU and Global shipments. The label for this shipment is unpaid meaning that you will need to pay the postal office/courier to sent this letter/package. Therefore, it does not support additional options.
+	ParcelStamp   = 4 // This package type is only available on MyParcel.nl for NL shipments and does not support any additional options. Its price is calculated using the package weight. Note: This shipment will appear on your invoice on shipment_status 2 (pending - registered) as opposed to all other package types, which won't appear on your invoice until shipment status 3 (enroute - handed to carrier).
 
 	// Delivery types
-	DELIVERY_MORNING  = 1 // Morning delivery
-	DELIVERY_STANDARD = 2 // Standard delivery
-	DELIVERY_EVENING  = 3 // Evening delivery
-	DELIVERY_PICKUP   = 4 // Pickup point delivery
+	DeliveryMorning  = 1 // Morning delivery
+	DeliveryStandard = 2 // Standard delivery
+	DeliveryEvening  = 3 // Evening delivery
+	DeliveryPickup   = 4 // Pickup point delivery
 )
 
+// JSONTime is a custom time type that can be marshalled to JSON.
 type JSONTime time.Time
 
+// MarshalJSON returns the JSON encoding of time specified in the format
 func (t JSONTime) MarshalJSON() ([]byte, error) {
-	//do your serializing here
 	stamp := fmt.Sprintf("\"%s\"", time.Time(t).Format("2006-01-02 15:04:05"))
 
 	if t.IsZero() {
@@ -45,6 +46,7 @@ func (t JSONTime) MarshalJSON() ([]byte, error) {
 	return []byte(stamp), nil
 }
 
+// IsZero returns true if the time is zero.
 func (t JSONTime) IsZero() bool {
 	return time.Time(t).IsZero()
 }
@@ -100,11 +102,13 @@ type InsuranceStruct struct {
 
 // ShipmentRequest to io.Reader
 func (s ShipmentRequest) toReader() (io.Reader, error) {
+	// convert to json
 	b, err := json.Marshal(s)
 	if err != nil {
 		return nil, err
 	}
 
+	// return the reader
 	return bytes.NewReader(b), nil
 }
 
@@ -132,6 +136,7 @@ func NewClient(apiKey string) *Client {
 	// base64 encode the api key
 	apiKey = base64.StdEncoding.EncodeToString([]byte(apiKey))
 
+	// return the client
 	return &Client{
 		apiBaseURL: "https://api.myparcel.nl",
 		httpClient: &http.Client{},
@@ -143,6 +148,7 @@ func NewClient(apiKey string) *Client {
 // CreateShipment creates a new shipment.
 func (c *Client) CreateShipment(shipment ShipmentStruct) (string, error) {
 
+	// create the request
 	request := ShipmentRequest{
 		Data: struct {
 			Shipments []ShipmentStruct `json:"shipments"`
@@ -151,27 +157,32 @@ func (c *Client) CreateShipment(shipment ShipmentStruct) (string, error) {
 		},
 	}
 
+	// convert the request to io.Reader
 	reader, err := request.toReader()
 	if err != nil {
 		return "", err
 	}
 
+	// create the http request
 	req, err := http.NewRequest("POST", c.apiBaseURL+"/shipments", reader)
 	if err != nil {
 		return "", err
 	}
 
+	// set the headers
 	req.Header.Set("Content-Type", "application/vnd.shipment+json;version=1.1;charset=utf-8")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.ApiKey)
 	req.Header.Set("User-Agent", c.UserAgent)
 
+	// send the request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
+	// check the response status code
 	if resp.StatusCode != 201 {
 		// echo the response body
 		body, err := io.ReadAll(resp.Body)

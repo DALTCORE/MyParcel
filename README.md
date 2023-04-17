@@ -35,9 +35,9 @@ shipment := myparcel.ShipmentStruct{
         Person:     "D. Duck",
     },
     Options: myparcel.OptionsStruct{
-        PackageType: myparcel.PARCEL_PACKAGE,
+        PackageType: myparcel.ParcelPackage,
     },
-    Carrier: myparcel.CARRIER_POSTNL,
+    Carrier: myparcel.CarrierPostnl,
 }
 
 s, err := client.CreateShipment(shipment)
