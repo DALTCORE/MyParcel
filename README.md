@@ -23,7 +23,7 @@ client := myparcel.NewClient("<your API key>")
 
 You can then use the client to perform various operations, such as creating a shipment:
 
-```
+```go
 client := myparcel.NewClient("<api key>")
 
 shipment := myparcel.ShipmentStruct{
