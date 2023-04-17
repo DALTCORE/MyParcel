@@ -50,12 +50,12 @@ fmt.Printf("%+v\n", s)
 You can also use the client to track a package:
 
 ```
-result, err := client.TrackPackage("<your shipment ID>")
-if err != nil {
-    // Handle error
-}
+s, err := client.GetShipment(12345)
+	if err != nil {
+		panic(err)
+	}
 
-fmt.Println(result.Status)
+fmt.Printf("%+v\n", s)
 ```
 
 For more information about the available operations and data structures, see the GoDoc documentation.
