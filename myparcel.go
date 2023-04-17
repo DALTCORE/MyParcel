@@ -2,7 +2,9 @@ package myparcel
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -30,6 +32,23 @@ const (
 	DELIVERY_PICKUP   = 4 // Pickup point delivery
 )
 
+type JSONTime time.Time
+
+func (t JSONTime) MarshalJSON() ([]byte, error) {
+	//do your serializing here
+	stamp := fmt.Sprintf("\"%s\"", time.Time(t).Format("2006-01-02 15:04:05"))
+
+	if t.IsZero() {
+		return []byte("null"), nil
+	}
+
+	return []byte(stamp), nil
+}
+
+func (t JSONTime) IsZero() bool {
+	return time.Time(t).IsZero()
+}
+
 // Client is the MyParcel client.
 type Client struct {
 	apiBaseURL string
@@ -39,39 +58,48 @@ type Client struct {
 }
 
 // Shipment struct
-type Shipment struct {
-	ReferenceIdentifier string `json:"reference_identifier"` // Required: No. Arbitrary reference indentifier to identify this shipment.
-	Recipient           struct {
-		Cc         string `json:"cc"`               // Required: yes. The address country code.
-		Region     string `json:"region,omitempty"` // Required: no. The region, department, state or province of the address.
-		City       string `json:"city"`             // Required: yes. The address city.
-		Street     string `json:"street"`           // Required: yes. The address street name. When shipping to an international destination, you may include street number in this field.
-		Number     string `json:"number"`           // Required: yes for domestic shipments in NL and BE. Street number.
-		PostalCode string `json:"postal_code"`      // Required: yes for NL and EU destinations except for IE. The address postal code.
-		Person     string `json:"person"`           // Required: yes. The person at this address. Up to 40 characters long.
-		Phone      string `json:"phone,omitempty"`  // Required: no. The address phone.
-		Email      string `json:"email,omitempty"`  // Required: no The address email.
-	} `json:"recipient"` // Required: Yes. The recipient address.
-	Options struct {
-		PackageType   int       `json:"package_type"`             // Required: yes. The package type. For international shipment only package type 1 (package) is allowed.
-		OnlyRecipient int       `json:"only_recipient,omitempty"` // Required: No. Deliver the package to the recipient only.
-		DeliveryType  int       `json:"delivery_type,omitempty"`  // Required: Yes if delivery_date has been specified. The delivery type for the package.
-		DeliveryDate  time.Time `json:"delivery_date,omitempty"`  // Required: Yes if delivery type has been specified. The delivery date time for this shipment.
-		Signature     int       `json:"signature,omitempty"`      // Required: No. Package must be signed for.
-		Return        int       `json:"return,omitempty"`         // Required: No. Return the package if the recipient is not home.
-		Insurance     struct {
-			Amount   int    `json:"amount"`   // Required: yes. The amount is without decimal separators (in cents).
-			Currency string `json:"currency"` // Required: yes. The insurance currency code. Must be one of the following: EUR.
-		} `json:"insurance"` // Required: No. Insurance price for the package.
-		LargeFormat      int    `json:"large_format"`      // Required: No. Large format package.
-		LabelDescription string `json:"label_description"` // Required: No. This description will appear on the shipment label. Note: This will be overridden for return shipment by the following: Retour – 3SMYPAMYPAXXXXXX
-		AgeCheck         int    `json:"age_check"`         // Required: No. The recipient must sign for the package and must be at least 18 years old.
-	} `json:"options"` // Required: Yes. The shipment options.
-	Carrier int `json:"carrier"` // Required: Yes. The carrier that will deliver the package.
+type ShipmentStruct struct {
+	Recipient           RecipientStruct `json:"recipient"`            // Required: Yes. The recipient address.
+	ReferenceIdentifier string          `json:"reference_identifier"` // Required: No. Arbitrary reference indentifier to identify this shipment.
+	Options             OptionsStruct   `json:"options"`              // Required: Yes. The shipment options.
+	Carrier             int             `json:"carrier"`              // Required: Yes. The carrier that will deliver the package.
 }
 
-// ShipmentStruct to io.Reader
-func (s Shipment) toReader() (io.Reader, error) {
+// Insurance struct
+type RecipientStruct struct {
+	Cc         string `json:"cc"`               // Required: yes. The address country code.
+	Region     string `json:"region,omitempty"` // Required: no. The region, department, state or province of the address.
+	City       string `json:"city"`             // Required: yes. The address city.
+	Street     string `json:"street"`           // Required: yes. The address street name. When shipping to an international destination, you may include street number in this field.
+	Number     string `json:"number"`           // Required: yes for domestic shipments in NL and BE. Street number.
+	PostalCode string `json:"postal_code"`      // Required: yes for NL and EU destinations except for IE. The address postal code.
+	Person     string `json:"person"`           // Required: yes. The person at this address. Up to 40 characters long.
+	Phone      string `json:"phone,omitempty"`  // Required: no. The address phone.
+	Email      string `json:"email,omitempty"`  // Required: no The address email.
+}
+
+// Options struct
+type OptionsStruct struct {
+	PackageType      int             `json:"package_type"`             // Required: yes. The package type. For international shipment only package type 1 (package) is allowed.
+	OnlyRecipient    int             `json:"only_recipient,omitempty"` // Required: No. Deliver the package to the recipient only.
+	DeliveryType     int             `json:"delivery_type,omitempty"`  // Required: Yes if delivery_date has been specified. The delivery type for the package.
+	DeliveryDate     JSONTime        `json:"delivery_date,omitempty"`  // Required: Yes if delivery type has been specified. The delivery date time for this shipment.
+	Signature        int             `json:"signature,omitempty"`      // Required: No. Package must be signed for.
+	Return           int             `json:"return,omitempty"`         // Required: No. Return the package if the recipient is not home.
+	Insurance        InsuranceStruct `json:"insurance"`                // Required: No. Insurance price for the package.
+	LargeFormat      int             `json:"large_format"`             // Required: No. Large format package.
+	LabelDescription string          `json:"label_description"`        // Required: No. This description will appear on the shipment label. Note: This will be overridden for return shipment by the following: Retour – 3SMYPAMYPAXXXXXX
+	AgeCheck         int             `json:"age_check"`                // Required: No. The recipient must sign for the package and must be at least 18 years old.
+}
+
+// Insurance struct
+type InsuranceStruct struct {
+	Amount   int    `json:"amount"`   // Required: yes. The amount is without decimal separators (in cents).
+	Currency string `json:"currency"` // Required: yes. The insurance currency code. Must be one of the following: EUR.
+}
+
+// ShipmentRequest to io.Reader
+func (s ShipmentRequest) toReader() (io.Reader, error) {
 	b, err := json.Marshal(s)
 	if err != nil {
 		return nil, err
@@ -90,9 +118,20 @@ type ShipmentResponse struct {
 	} `json:"data"`
 }
 
+// ShipmentRequest struct with data and with multiple shipments
+type ShipmentRequest struct {
+	Data struct {
+		Shipments []ShipmentStruct `json:"shipments"`
+	} `json:"data"`
+}
+
 // NewClient returns a new MyParcel client.
 // The API key is required to use the MyParcel API.
 func NewClient(apiKey string) *Client {
+
+	// base64 encode the api key
+	apiKey = base64.StdEncoding.EncodeToString([]byte(apiKey))
+
 	return &Client{
 		apiBaseURL: "https://api.myparcel.nl",
 		httpClient: &http.Client{},
@@ -102,9 +141,17 @@ func NewClient(apiKey string) *Client {
 }
 
 // CreateShipment creates a new shipment.
-func (c *Client) CreateShipment(shipment Shipment) (string, error) {
+func (c *Client) CreateShipment(shipment ShipmentStruct) (string, error) {
 
-	reader, err := shipment.toReader()
+	request := ShipmentRequest{
+		Data: struct {
+			Shipments []ShipmentStruct `json:"shipments"`
+		}{
+			Shipments: []ShipmentStruct{shipment},
+		},
+	}
+
+	reader, err := request.toReader()
 	if err != nil {
 		return "", err
 	}
@@ -124,6 +171,15 @@ func (c *Client) CreateShipment(shipment Shipment) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 201 {
+		// echo the response body
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
+		return "", fmt.Errorf("MyParcel API returned status code %d: %s", resp.StatusCode, body)
+	}
 
 	return "", nil
 }

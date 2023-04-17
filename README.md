@@ -24,22 +24,30 @@ client := myparcel.NewClient("<your API key>")
 You can then use the client to perform various operations, such as creating a shipment:
 
 ```
-shipment := myparcel.Shipment{
-    Carrier:    "postnl",
-    Name:       "John Doe",
-    Street:     "Main Street 1",
-    PostalCode: "1000 AA",
-    City:       "Amsterdam",
-    Country:    "NL",
+client := myparcel.NewClient("<api key>")
+
+shipment := myparcel.ShipmentStruct{
+    ReferenceIdentifier: "123456789",
+    Recipient: myparcel.RecipientStruct{
+        Street:     "Testlane",
+        Number:     "1",
+        PostalCode: "1234 AB",
+        City:       "Amsterdam",
+        Cc:         "NL",
+        Person:     "D. Duck",
+    },
+    Options: myparcel.OptionsStruct{
+        PackageType: myparcel.PARCEL_PACKAGE,
+    },
+    Carrier: myparcel.CARRIER_POSTNL,
 }
 
-
-result, err := client.CreateShipment(shipment)
+s, err := client.CreateShipment(shipment)
 if err != nil {
-    // Handle error
+    panic(err)
 }
 
-fmt.Println(result.ID)
+fmt.Printf("%+v\n", s)
 ```
 You can also use the client to track a package:
 
